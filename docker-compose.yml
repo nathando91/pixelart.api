@@ -1,0 +1,58 @@
+version: '3.8'
+services:
+
+  database:
+    image: postgres:16.1
+    env_file: ./.env
+    volumes:
+      - postgres_data_2:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - default
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+  hasura:
+    image: hasura/graphql-engine:v2.36.0
+    ports:
+      - '${HASURA_PORT}:8080'
+    restart: always
+    env_file: ./.env
+    depends_on:
+      - database
+    networks:
+      - default
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+  functions:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    command: npm run dev
+    ports:
+      - '${PORT}:3000'
+      - '${COLYSEUS_PORT}:2567'
+    depends_on:
+      - hasura
+    restart: always
+    networks:
+      - default
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+volumes:
+  postgres_data_2:
+
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${NETWORK_SUBNET}
+          gateway: ${NETWORK_GATEWAY}

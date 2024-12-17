@@ -1,0 +1,3 @@
+table:
+  name: ips
+  schema: public

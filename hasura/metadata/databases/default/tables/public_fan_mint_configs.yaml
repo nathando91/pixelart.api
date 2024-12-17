@@ -1,0 +1,11 @@
+table:
+  name: fan_mint_configs
+  schema: public
+object_relationships:
+  - name: fan_mint_config_tracker
+    using:
+      foreign_key_constraint_on:
+        column: mint_config_id
+        table:
+          name: fan_mint_config_trackers
+          schema: public

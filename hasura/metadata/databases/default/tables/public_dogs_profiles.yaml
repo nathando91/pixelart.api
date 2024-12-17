@@ -1,0 +1,3 @@
+table:
+  name: dogs_profiles
+  schema: public

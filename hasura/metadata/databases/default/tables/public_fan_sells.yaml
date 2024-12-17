@@ -1,0 +1,3 @@
+table:
+  name: fan_sells
+  schema: public

@@ -1,0 +1,3 @@
+table:
+  name: actived_wallet
+  schema: public
