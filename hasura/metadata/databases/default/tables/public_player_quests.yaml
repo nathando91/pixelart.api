@@ -1,0 +1,10 @@
+table:
+  name: player_quests
+  schema: public
+object_relationships:
+  - name: player_profile
+    using:
+      foreign_key_constraint_on: player_id
+  - name: quest
+    using:
+      foreign_key_constraint_on: quest_id

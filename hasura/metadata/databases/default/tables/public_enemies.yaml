@@ -1,11 +1,11 @@
 table:
-  name: handlers
+  name: enemies
   schema: public
 array_relationships:
-  - name: profiles
+  - name: player_combat_logs
     using:
       foreign_key_constraint_on:
-        column: handler
+        column: enemy_id
         table:
-          name: profiles
+          name: player_combat_logs
           schema: public

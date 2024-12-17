@@ -1,5 +1,21 @@
-query MyQuery {
-  candidates {
+query GetUsers($where: users_bool_exp = {}, $limit: Int = 10) {
+  users(where: $where, limit: $limit) {
+    username
+    updated_at
+    password
+    id
     email
+    created_at
+  }
+}
+
+mutation InsertUser($object: users_insert_input = {}) {
+  insert_users_one(object: $object) {
+    username
+    updated_at
+    password
+    id
+    email
+    created_at
   }
 }

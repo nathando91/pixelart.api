@@ -7,18 +7,17 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AuthModule } from './auth/auth.module';
 import { AppLogger } from './logger.service';
 import { LoggingInterceptor } from './logging.interceptor';
 import { SdkModule } from './sdk/sdk.module';
 import { ColyseusModule } from './colyseus/colyseus.module';
+
 
 @Module({
   imports: [
     HttpModule,
     SdkModule,
     ScheduleModule.forRoot(),
-    AuthModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -55,6 +54,7 @@ import { ColyseusModule } from './colyseus/colyseus.module';
       },
     }),
     ColyseusModule,
+
   ],
   controllers: [AppController],
   providers: [

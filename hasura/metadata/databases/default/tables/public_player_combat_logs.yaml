@@ -1,0 +1,10 @@
+table:
+  name: player_combat_logs
+  schema: public
+object_relationships:
+  - name: enemy
+    using:
+      foreign_key_constraint_on: enemy_id
+  - name: player_profile
+    using:
+      foreign_key_constraint_on: player_id

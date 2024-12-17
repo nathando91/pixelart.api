@@ -1,0 +1,10 @@
+table:
+  name: player_items
+  schema: public
+object_relationships:
+  - name: item
+    using:
+      foreign_key_constraint_on: item_id
+  - name: player_profile
+    using:
+      foreign_key_constraint_on: player_id

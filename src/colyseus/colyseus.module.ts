@@ -1,5 +1,6 @@
 import { Module, OnModuleInit } from '@nestjs/common';
-import { Server } from 'colyseus';
+import { Server, } from 'colyseus';
+import { WebSocketTransport } from "@colyseus/ws-transport"
 import { createServer } from 'http';
 import { MyRoom } from './my-room';
 
@@ -11,11 +12,12 @@ export class ColyseusModule implements OnModuleInit {
         const port = Number(process.env.COLYSEUS_PORT || 2567);
         const httpServer = createServer();
         this.gameServer = new Server({
-            server: httpServer,
+            transport: new WebSocketTransport({
+                server: httpServer,
+            }),
         });
 
-
-        this.gameServer.define('my_room', MyRoom);
+        this.gameServer.define('my_room', MyRoom)
 
         httpServer.listen(port, () => {
             console.log(`Colyseus server is listening on ws://localhost:${port}`);

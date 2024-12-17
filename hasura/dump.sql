@@ -40,64 +40,18 @@ COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
 
 
 --
--- Name: application_status; Type: TYPE; Schema: public; Owner: postgres
+-- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: -
 --
 
-CREATE TYPE public.application_status AS ENUM (
-    'new',
-    'reviewing',
-    'interviewed',
-    'rejected',
-    'accepted'
-);
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
 
-
-ALTER TYPE public.application_status OWNER TO postgres;
 
 --
--- Name: english_level; Type: TYPE; Schema: public; Owner: postgres
+-- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner: 
 --
 
-CREATE TYPE public.english_level AS ENUM (
-    'beginner',
-    'intermediate',
-    'upper_intermediate',
-    'advanced',
-    'proficient'
-);
+COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UUIDs)';
 
-
-ALTER TYPE public.english_level OWNER TO postgres;
-
---
--- Name: position_level; Type: TYPE; Schema: public; Owner: postgres
---
-
-CREATE TYPE public.position_level AS ENUM (
-    'intern',
-    'fresher',
-    'junior',
-    'middle',
-    'senior'
-);
-
-
-ALTER TYPE public.position_level OWNER TO postgres;
-
---
--- Name: position_type; Type: TYPE; Schema: public; Owner: postgres
---
-
-CREATE TYPE public.position_type AS ENUM (
-    'frontend',
-    'backend',
-    'fullstack',
-    'devops',
-    'mobile'
-);
-
-
-ALTER TYPE public.position_type OWNER TO postgres;
 
 --
 -- Name: gen_hasura_uuid(); Type: FUNCTION; Schema: hdb_catalog; Owner: postgres
@@ -109,22 +63,6 @@ CREATE FUNCTION hdb_catalog.gen_hasura_uuid() RETURNS uuid
 
 
 ALTER FUNCTION hdb_catalog.gen_hasura_uuid() OWNER TO postgres;
-
---
--- Name: update_updated_at_column(); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION public.update_updated_at_column() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$;
-
-
-ALTER FUNCTION public.update_updated_at_column() OWNER TO postgres;
 
 SET default_tablespace = '';
 
@@ -270,38 +208,150 @@ CREATE TABLE hdb_catalog.hdb_version (
 ALTER TABLE hdb_catalog.hdb_version OWNER TO postgres;
 
 --
--- Name: candidates; Type: TABLE; Schema: public; Owner: postgres
+-- Name: enemies; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.candidates (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    full_name character varying(255) NOT NULL,
-    email character varying(255) NOT NULL,
-    phone character varying(20),
-    birth_date date,
-    address text,
-    position_type public.position_type NOT NULL,
-    position_level public.position_level NOT NULL,
-    application_date timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    status public.application_status DEFAULT 'new'::public.application_status,
-    university character varying(255),
-    major character varying(255),
-    graduation_year integer,
-    programming_languages text[],
-    frameworks text[],
-    databases text[],
-    other_skills text[],
-    years_of_experience numeric(3,1) DEFAULT 0,
-    work_history jsonb,
-    personal_projects jsonb,
-    github_url text,
-    linkedin_url text
+CREATE TABLE public.enemies (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    name character varying(50) NOT NULL,
+    health integer NOT NULL,
+    attack integer NOT NULL,
+    loot json
 );
 
 
-ALTER TABLE public.candidates OWNER TO postgres;
+ALTER TABLE public.enemies OWNER TO postgres;
+
+--
+-- Name: items; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.items (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    name character varying(50) NOT NULL,
+    description text,
+    type character varying(20) NOT NULL,
+    effect json,
+    rarity character varying(20) NOT NULL,
+    CONSTRAINT items_rarity_check CHECK (((rarity)::text = ANY ((ARRAY['common'::character varying, 'rare'::character varying, 'epic'::character varying, 'legendary'::character varying])::text[]))),
+    CONSTRAINT items_type_check CHECK (((type)::text = ANY ((ARRAY['weapon'::character varying, 'armor'::character varying, 'potion'::character varying, 'misc'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.items OWNER TO postgres;
+
+--
+-- Name: maps; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.maps (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    name character varying(50) NOT NULL,
+    width integer NOT NULL,
+    height integer NOT NULL,
+    description text
+);
+
+
+ALTER TABLE public.maps OWNER TO postgres;
+
+--
+-- Name: player_combat_logs; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.player_combat_logs (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    player_id uuid,
+    enemy_id uuid,
+    result character varying(20) NOT NULL,
+    damage_dealt integer NOT NULL,
+    damage_taken integer NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT player_combat_logs_result_check CHECK (((result)::text = ANY ((ARRAY['win'::character varying, 'lose'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.player_combat_logs OWNER TO postgres;
+
+--
+-- Name: player_items; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.player_items (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    player_id uuid,
+    item_id uuid,
+    quantity integer DEFAULT 1,
+    equipped boolean DEFAULT false
+);
+
+
+ALTER TABLE public.player_items OWNER TO postgres;
+
+--
+-- Name: player_profiles; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.player_profiles (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    user_id uuid,
+    level integer DEFAULT 1,
+    experience integer DEFAULT 0,
+    health integer DEFAULT 100,
+    max_health integer DEFAULT 100,
+    gold integer DEFAULT 0,
+    location_id uuid
+);
+
+
+ALTER TABLE public.player_profiles OWNER TO postgres;
+
+--
+-- Name: player_quests; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.player_quests (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    player_id uuid,
+    quest_id uuid,
+    status character varying(20) DEFAULT 'in_progress'::character varying,
+    progress json,
+    CONSTRAINT player_quests_status_check CHECK (((status)::text = ANY ((ARRAY['in_progress'::character varying, 'completed'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.player_quests OWNER TO postgres;
+
+--
+-- Name: quests; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.quests (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    name character varying(100) NOT NULL,
+    description text,
+    reward json,
+    requirements json
+);
+
+
+ALTER TABLE public.quests OWNER TO postgres;
+
+--
+-- Name: users; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.users (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    username character varying(50) NOT NULL,
+    password character varying(255) NOT NULL,
+    email character varying(100),
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.users OWNER TO postgres;
 
 --
 -- Data for Name: hdb_action_log; Type: TABLE DATA; Schema: hdb_catalog; Owner: postgres
@@ -332,7 +382,7 @@ COPY hdb_catalog.hdb_cron_events (id, trigger_name, scheduled_time, status, trie
 --
 
 COPY hdb_catalog.hdb_metadata (id, metadata, resource_version) FROM stdin;
-1	{"sources":[{"configuration":{"connection_info":{"database_url":{"from_env":"HASURA_GRAPHQL_DATABASE_URL"},"isolation_level":"read-committed","pool_settings":{"connection_lifetime":600,"idle_timeout":180,"max_connections":50,"retries":1},"use_prepared_statements":true}},"kind":"postgres","name":"default","tables":[{"table":{"name":"candidates","schema":"public"}}]}],"version":3}	6
+1	{"sources":[{"configuration":{"connection_info":{"database_url":{"from_env":"HASURA_GRAPHQL_DATABASE_URL"},"isolation_level":"read-committed","pool_settings":{"connection_lifetime":600,"idle_timeout":180,"max_connections":50,"retries":1},"use_prepared_statements":true}},"kind":"postgres","name":"default","tables":[{"array_relationships":[{"name":"player_combat_logs","using":{"foreign_key_constraint_on":{"column":"enemy_id","table":{"name":"player_combat_logs","schema":"public"}}}}],"table":{"name":"enemies","schema":"public"}},{"array_relationships":[{"name":"player_items","using":{"foreign_key_constraint_on":{"column":"item_id","table":{"name":"player_items","schema":"public"}}}}],"table":{"name":"items","schema":"public"}},{"table":{"name":"maps","schema":"public"}},{"object_relationships":[{"name":"enemy","using":{"foreign_key_constraint_on":"enemy_id"}},{"name":"player_profile","using":{"foreign_key_constraint_on":"player_id"}}],"table":{"name":"player_combat_logs","schema":"public"}},{"object_relationships":[{"name":"item","using":{"foreign_key_constraint_on":"item_id"}},{"name":"player_profile","using":{"foreign_key_constraint_on":"player_id"}}],"table":{"name":"player_items","schema":"public"}},{"array_relationships":[{"name":"player_combat_logs","using":{"foreign_key_constraint_on":{"column":"player_id","table":{"name":"player_combat_logs","schema":"public"}}}},{"name":"player_items","using":{"foreign_key_constraint_on":{"column":"player_id","table":{"name":"player_items","schema":"public"}}}},{"name":"player_quests","using":{"foreign_key_constraint_on":{"column":"player_id","table":{"name":"player_quests","schema":"public"}}}}],"object_relationships":[{"name":"user","using":{"foreign_key_constraint_on":"user_id"}}],"table":{"name":"player_profiles","schema":"public"}},{"object_relationships":[{"name":"player_profile","using":{"foreign_key_constraint_on":"player_id"}},{"name":"quest","using":{"foreign_key_constraint_on":"quest_id"}}],"table":{"name":"player_quests","schema":"public"}},{"array_relationships":[{"name":"player_quests","using":{"foreign_key_constraint_on":{"column":"quest_id","table":{"name":"player_quests","schema":"public"}}}}],"table":{"name":"quests","schema":"public"}},{"array_relationships":[{"name":"player_profiles","using":{"foreign_key_constraint_on":{"column":"user_id","table":{"name":"player_profiles","schema":"public"}}}}],"table":{"name":"users","schema":"public"}}]}],"version":3}	3
 \.
 
 
@@ -357,7 +407,7 @@ COPY hdb_catalog.hdb_scheduled_events (id, webhook_conf, scheduled_time, retry_c
 --
 
 COPY hdb_catalog.hdb_schema_notifications (id, notification, resource_version, instance_id, updated_at) FROM stdin;
-1	{"metadata":false,"remote_schemas":[],"sources":[],"data_connectors":[]}	6	61af8da1-2cce-484d-ae1c-71e214858e58	2024-12-12 19:50:50.041933+00
+1	{"metadata":false,"remote_schemas":[],"sources":[],"data_connectors":[]}	3	8c2d872d-3439-4bcc-9b62-1d5d444a1143	2024-12-17 17:06:12.796219+00
 \.
 
 
@@ -366,16 +416,94 @@ COPY hdb_catalog.hdb_schema_notifications (id, notification, resource_version, i
 --
 
 COPY hdb_catalog.hdb_version (hasura_uuid, version, upgraded_on, cli_state, console_state, ee_client_id, ee_client_secret) FROM stdin;
-59a82a31-ff9b-41ee-a4e2-906b4d5ebe3e	48	2024-12-12 19:47:38.837852+00	{"settings": {"migration_mode": "true"}, "migrations": {"default": {"1734033890353": false, "1734034107774": false}}, "isStateCopyCompleted": false}	{}	\N	\N
+d365c0b9-a8e0-4375-99bd-46dd233a559d	48	2024-12-15 10:09:45.423568+00	{"settings": {"migration_mode": "true"}, "migrations": {"default": {"1734455365574": false, "1734457570469": false}}, "isStateCopyCompleted": false}	{}	\N	\N
 \.
 
 
 --
--- Data for Name: candidates; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: enemies; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.candidates (id, created_at, updated_at, full_name, email, phone, birth_date, address, position_type, position_level, application_date, status, university, major, graduation_year, programming_languages, frameworks, databases, other_skills, years_of_experience, work_history, personal_projects, github_url, linkedin_url) FROM stdin;
-b6a9be6e-e17f-4683-924d-26899df89a81	2024-12-12 19:58:04.934027+00	2024-12-12 19:58:04.934027+00	Nguyễn Văn Thức	thucskin@gmail.com	0969794458	\N	Hải Châu - Đà Nẵng	frontend	fresher	2024-12-12 19:58:04.934027+00	new	FPT Polytechnic College	Software Applications	2023	{Java,NodeJS,TypeScript,HTML,CSS,JavaScript,SASS}	{"Spring Boot",Express,NestJS,TypeORM,ReactJS,NextJS,VueJS,NuxtJS,Bootstrap,Tailwind}	{"SQL Server",MySQL,MongoDB,PostgreSQL}	\N	1.0	{"companies": [{"end_date": "2024-07-10", "position": "Fresher", "start_date": "2024-04-11", "description": "Laco – Local service app development using VueJS/NuxtJS. Worked on site admin features including user management, roles, permissions, brands, location revenues, statistics, authentication.", "company_name": "Laco Joint Stock Company"}]}	[{"name": "Medical Appointment Booking Website", "demo_url": "https://www.youtube.com/watch?v=fT74FyEHlWU", "duration": "June 2023 - September 2023", "team_size": 1, "description": "Online Appointment Booking, Patient Information Management, Appointment Confirmation, Edit and Cancel Appointments, Physician Directory Management, Search Functionality", "technologies": ["NodeJS", "Express", "MySQL", "ReactJS", "Bootstrap5", "SASS"]}, {"name": "ShopNow E-commerce Website", "demo_url": "https://www.youtube.com/watch?v=9PJy_2lt59w", "duration": "December 2022 - February 2023", "team_size": 1, "description": "E-commerce platform with product search, order management, user authentication, and admin dashboard", "technologies": ["Java Spring Boot", "SQL Server", "Angular", "Bootstrap5"]}]	\N	https://www.facebook.com/ThucSkin/
+COPY public.enemies (id, name, health, attack, loot) FROM stdin;
+64668196-e136-4bf4-8934-0f793881f024	Goblin	30	5	{"gold": 10, "item_drop": "Health Potion"}
+f802e8c5-8522-4f98-9c98-95f6b1790461	Dark Knight	100	20	{"gold": 50, "item_drop": "Steel Armor"}
+353d431a-f41d-4fca-b502-4c46cbc74069	Forest Dragon	300	50	{"gold": 200, "item_drop": "Legendary Bow"}
+\.
+
+
+--
+-- Data for Name: items; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.items (id, name, description, type, effect, rarity) FROM stdin;
+18f4d990-a390-448e-b4be-baf9b8fff104	Iron Sword	A basic sword with decent attack.	weapon	{"attack": 10}	common
+4cbe7ff2-cd22-4a05-9586-51c92a05cf61	Health Potion	Restores 50 HP.	potion	{"heal": 50}	common
+6db924f4-eb0e-4ce8-8419-86af5e33a994	Steel Armor	Provides strong defense.	armor	{"defense": 20}	rare
+55e37812-63bd-4f54-b2b7-aafb7eda6ed7	Legendary Bow	A powerful bow with unmatched accuracy.	weapon	{"attack": 50}	legendary
+\.
+
+
+--
+-- Data for Name: maps; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.maps (id, name, width, height, description) FROM stdin;
+348b3789-e2b8-4512-a63b-d2502dee68a5	Forest of Trials	100	100	A dense forest filled with mysteries and treasures.
+3c005fc4-05ed-4b13-8e45-c3321391c3c5	Cave of Shadows	50	50	A dark cave teeming with monsters and hidden loot.
+\.
+
+
+--
+-- Data for Name: player_combat_logs; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.player_combat_logs (id, player_id, enemy_id, result, damage_dealt, damage_taken, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: player_items; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.player_items (id, player_id, item_id, quantity, equipped) FROM stdin;
+4097b42b-9feb-4aad-9b06-0f4ad06ae2bd	e26edf60-a1a3-4467-83b4-7dda763c656c	18f4d990-a390-448e-b4be-baf9b8fff104	1	t
+\.
+
+
+--
+-- Data for Name: player_profiles; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.player_profiles (id, user_id, level, experience, health, max_health, gold, location_id) FROM stdin;
+e26edf60-a1a3-4467-83b4-7dda763c656c	4b4485f6-867f-4899-9403-9f95bb3d3b42	1	0	100	100	0	348b3789-e2b8-4512-a63b-d2502dee68a5
+\.
+
+
+--
+-- Data for Name: player_quests; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.player_quests (id, player_id, quest_id, status, progress) FROM stdin;
+4cb72429-3a77-4c6f-a0bd-344c8ff7f774	e26edf60-a1a3-4467-83b4-7dda763c656c	ef693845-3897-417e-a11e-9b0fc0099a14	in_progress	\N
+\.
+
+
+--
+-- Data for Name: quests; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.quests (id, name, description, reward, requirements) FROM stdin;
+ef693845-3897-417e-a11e-9b0fc0099a14	Defeat the Goblins	Eliminate 5 goblins in the Forest of Trials.	{"experience": 100, "gold": 50, "item_reward": "Health Potion"}	{"enemy_kill": {"Goblin": 5}}
+73c7b231-6ad5-487a-8d17-4748c5ba97fd	Slay the Forest Dragon	Defeat the mighty Forest Dragon to restore peace.	{"experience": 500, "gold": 300, "item_reward": "Legendary Bow"}	{"enemy_kill": {"Forest Dragon": 1}}
+\.
+
+
+--
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.users (id, username, password, email, created_at, updated_at) FROM stdin;
+4b4485f6-867f-4899-9403-9f95bb3d3b42	player1	hashed_password	player1@example.com	2024-12-17 17:07:02.254718	2024-12-17 17:07:02.254718
 \.
 
 
@@ -452,19 +580,91 @@ ALTER TABLE ONLY hdb_catalog.hdb_version
 
 
 --
--- Name: candidates candidates_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: enemies enemies_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.candidates
-    ADD CONSTRAINT candidates_email_key UNIQUE (email);
+ALTER TABLE ONLY public.enemies
+    ADD CONSTRAINT enemies_pkey PRIMARY KEY (id);
 
 
 --
--- Name: candidates candidates_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: items items_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.candidates
-    ADD CONSTRAINT candidates_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.items
+    ADD CONSTRAINT items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: maps maps_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.maps
+    ADD CONSTRAINT maps_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: player_combat_logs player_combat_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.player_combat_logs
+    ADD CONSTRAINT player_combat_logs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: player_items player_items_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.player_items
+    ADD CONSTRAINT player_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: player_profiles player_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.player_profiles
+    ADD CONSTRAINT player_profiles_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: player_quests player_quests_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.player_quests
+    ADD CONSTRAINT player_quests_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: quests quests_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.quests
+    ADD CONSTRAINT quests_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_email_key UNIQUE (email);
+
+
+--
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: users users_username_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_username_key UNIQUE (username);
 
 
 --
@@ -516,6 +716,62 @@ ALTER TABLE ONLY hdb_catalog.hdb_cron_event_invocation_logs
 
 ALTER TABLE ONLY hdb_catalog.hdb_scheduled_event_invocation_logs
     ADD CONSTRAINT hdb_scheduled_event_invocation_logs_event_id_fkey FOREIGN KEY (event_id) REFERENCES hdb_catalog.hdb_scheduled_events(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: player_combat_logs player_combat_logs_enemy_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.player_combat_logs
+    ADD CONSTRAINT player_combat_logs_enemy_id_fkey FOREIGN KEY (enemy_id) REFERENCES public.enemies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: player_combat_logs player_combat_logs_player_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.player_combat_logs
+    ADD CONSTRAINT player_combat_logs_player_id_fkey FOREIGN KEY (player_id) REFERENCES public.player_profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: player_items player_items_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.player_items
+    ADD CONSTRAINT player_items_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id) ON DELETE CASCADE;
+
+
+--
+-- Name: player_items player_items_player_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.player_items
+    ADD CONSTRAINT player_items_player_id_fkey FOREIGN KEY (player_id) REFERENCES public.player_profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: player_profiles player_profiles_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.player_profiles
+    ADD CONSTRAINT player_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: player_quests player_quests_player_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.player_quests
+    ADD CONSTRAINT player_quests_player_id_fkey FOREIGN KEY (player_id) REFERENCES public.player_profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: player_quests player_quests_quest_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.player_quests
+    ADD CONSTRAINT player_quests_quest_id_fkey FOREIGN KEY (quest_id) REFERENCES public.quests(id) ON DELETE CASCADE;
 
 
 --
