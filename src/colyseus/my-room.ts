@@ -1,28 +1,92 @@
 import { Room, Client } from 'colyseus';
+import * as jwt from 'jsonwebtoken';
+import Quadtree from 'simple-quadtree';
 
 export class MyRoom extends Room {
-    // Phương thức được gọi khi phòng được tạo
+    private quadtree: any;
+    private userSessionMap: { [username: string]: string } = {};
+
     onCreate(options: any) {
-        console.log("MyRoom created!", options);
+        // Initialize the quadtree with the map size
+        this.quadtree = Quadtree(0, 0, 2000, 2000);
 
-        // Đăng ký một loại tin nhắn
-        this.onMessage("message_type", (client, message) => {
-            console.log("Received message from", client.sessionId, ":", message);
-            // Xử lý tin nhắn
+        this.onMessage("move", (client, data) => {
+            // Update player position in the quadtree
+            this.quadtree.remove({ id: client.sessionId });
+            this.quadtree.put({ x: data.x, y: data.y, id: client.sessionId });
+
+            // Find nearby players within a 100-unit radius
+            const nearbyPlayers = this.findNearbyPlayers(data.x, data.y, 100);
+
+            this.broadcast("move", data, { except: client });
+
+            console.log("Nearby players:", nearbyPlayers);
+
+            // Broadcast the move message only to nearby players
+            // nearbyPlayers.forEach((player: any) => {
+            //     if (player.id !== client.sessionId) {
+            //         this.clients.find(c => c.sessionId === player.id)?.send("move", data);
+            //     }
+            // });
         });
+
+        this.onMessage("chat", (client, message) => {
+            console.log("Chat message from", client.sessionId, ":", message);
+            // Xử lý logic cho tin nhắn chat
+        });
+
+        this.onMessage("update_status", (client, message) => {
+            console.log("Update status message from", client.sessionId, ":", message);
+            // Xử lý logic cho tin nhắn cập nhật trạng thái
+        });
+
     }
 
-    // Phương thức được gọi khi một client tham gia phòng
     onJoin(client: Client, options: any) {
-        console.log(client.sessionId, "joined!");
-        // Xử lý khi client tham gia
+        // Add player to the quadtree with initial position
+        this.quadtree.put({ x: 0, y: 0, id: client.sessionId });
+
+        const token = options.token;
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET_ACCESS_TOKEN) as any;
+            console.log(client.sessionId, "joined ", decoded.username);
+
+            // Check if the token is expired
+            const currentTime = Math.floor(Date.now() / 1000);
+            if (decoded.exp < currentTime) {
+                console.log("Token expired for client", client.sessionId);
+                client.send("logout", { reason: "Token expired" });
+                client.leave();
+                return;
+            }
+
+            // Thêm username vào userSessionMap
+            const username = decoded.username; // Giả sử token có chứa username
+            this.userSessionMap[username] = client.sessionId;
+
+        } catch (err) {
+            console.log("Invalid token for client", client.sessionId);
+            client.leave(); // Đuổi client ra khỏi phòng nếu token không hợp lệ
+        }
     }
 
-    // Phương thức được gọi khi một client rời khỏi phòng
     onLeave(client: Client, consented: boolean) {
+        // Remove player from the quadtree
+        this.quadtree.remove({ id: client.sessionId });
         console.log(client.sessionId, "left!");
-        // Xử lý khi client rời khỏi
+
+        // Xóa username khỏi userSessionMap
+        for (const username in this.userSessionMap) {
+            if (this.userSessionMap[username] === client.sessionId) {
+                delete this.userSessionMap[username];
+                break;
+            }
+        }
     }
 
-    // Phương thức được gọi mỗi
+    // Add a method to find nearby players
+    findNearbyPlayers(x: number, y: number, range: number) {
+        return this.quadtree.get({ x, y, width: range, height: range });
+    }
+
 } 

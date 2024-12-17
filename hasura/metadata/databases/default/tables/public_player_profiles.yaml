@@ -1,0 +1,29 @@
+table:
+  name: player_profiles
+  schema: public
+object_relationships:
+  - name: user
+    using:
+      foreign_key_constraint_on: user_id
+array_relationships:
+  - name: player_combat_logs
+    using:
+      foreign_key_constraint_on:
+        column: player_id
+        table:
+          name: player_combat_logs
+          schema: public
+  - name: player_items
+    using:
+      foreign_key_constraint_on:
+        column: player_id
+        table:
+          name: player_items
+          schema: public
+  - name: player_quests
+    using:
+      foreign_key_constraint_on:
+        column: player_id
+        table:
+          name: player_quests
+          schema: public

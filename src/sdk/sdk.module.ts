@@ -42,4 +42,4 @@ export const InjectSdk = () => Inject(SDK);
   ],
   exports: [SDK],
 })
-export class SdkModule {}
+export class SdkModule { }

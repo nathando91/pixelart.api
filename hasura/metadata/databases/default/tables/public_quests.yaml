@@ -1,11 +1,11 @@
 table:
-  name: categories
+  name: quests
   schema: public
 array_relationships:
-  - name: products
+  - name: player_quests
     using:
       foreign_key_constraint_on:
-        column: category_id
+        column: quest_id
         table:
-          name: products
+          name: player_quests
           schema: public
